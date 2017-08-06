@@ -117,6 +117,12 @@ public class EventDeserializer {
                new PreviousGtidSetDeserializer());
         eventDataDeserializers.put(EventType.XA_PREPARE,
                 new XAPrepareEventDataDeserializer());
+
+        eventDataDeserializers.put(EventType.MARIADB_GTID,
+                new MariaGtidEventDataDeserializer());
+        eventDataDeserializers.put(EventType.MARIADB_GTID_LIST,
+                new MariaGtidListEventDataDeserializer());        
+        
     }
 
     public void setEventDataDeserializer(EventType eventType, EventDataDeserializer eventDataDeserializer) {
