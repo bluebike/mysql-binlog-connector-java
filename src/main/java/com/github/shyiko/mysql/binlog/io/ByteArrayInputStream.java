@@ -48,6 +48,27 @@ public class ByteArrayInputStream extends InputStream {
         return result;
     }
 
+    public int readInteger2() throws IOException {
+        int result = this.read();
+        result |= this.read() << 8;
+        return result;
+    }
+
+    public int readInteger3() throws IOException {
+        int result = this.read();
+        result |= this.read() << 8;
+        result |= this.read() << 16;
+        return result;
+    }
+
+    public int readInteger4() throws IOException {
+        int result = this.read();
+        result |= this.read() << 8;
+        result |= this.read() << 16;
+        result |= this.read() << 24;
+        return result;
+    }
+
     /**
      * Read long written in little-endian format.
      */
@@ -128,14 +149,24 @@ public class ByteArrayInputStream extends InputStream {
      * @see #readPackedNumber()
      */
     public int readPackedInteger() throws IOException {
-        Number number = readPackedNumber();
-        if (number == null) {
-            throw new IOException("Unexpected NULL where int should have been");
+        int b = this.read();
+        if (b < 251) {
+            return b;
+        } else if (b == 251) {
+            throw new IOException("try to read NULL packed integer");
+        } else if (b == 252) {
+            return readInteger(2);
+        } else if (b == 253) {
+            return readInteger(3);
+        } else if (b == 254) {
+            long v = readLong(8);
+            if (v > Integer.MAX_VALUE) {
+                throw new IOException("Stumbled upon long even though int expected: " + v);
+            }
+            return (int) v;
+        } else {
+            throw new IOException("Unexpected packed number byte " + b);
         }
-        if (number.longValue() > Integer.MAX_VALUE) {
-            throw new IOException("Stumbled upon long even though int expected");
-        }
-        return number.intValue();
     }
 
     /**
@@ -153,9 +184,9 @@ public class ByteArrayInputStream extends InputStream {
         } else if (b == 251) {
             return null;
         } else if (b == 252) {
-            return (long) readInteger(2);
+            return (long) readInteger2();
         } else if (b == 253) {
-            return (long) readInteger(3);
+            return (long) readInteger3();
         } else if (b == 254) {
             return readLong(8);
         }
