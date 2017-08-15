@@ -28,6 +28,7 @@ public class ByteArrayInputStream extends InputStream {
     private InputStream inputStream;
     private Integer peek;
     private int blockLength = -1;
+    private int fixedSize = 0;
 
     public ByteArrayInputStream(InputStream inputStream) {
         this.inputStream = inputStream;
@@ -35,6 +36,12 @@ public class ByteArrayInputStream extends InputStream {
 
     public ByteArrayInputStream(byte[] bytes) {
         this(new java.io.ByteArrayInputStream(bytes));
+    }
+
+
+    public ByteArrayInputStream subStream(int length) throws IOException {
+        byte[] bytes = read(length);
+        return new ByteArrayInputStream(bytes);
     }
 
     /**
@@ -249,4 +256,12 @@ public class ByteArrayInputStream extends InputStream {
         }
     }
 
+    public int getFixedSize() {
+        return fixedSize;
+    }
+
+    public void setFixedSize(int fixedSize) {
+        this.fixedSize = fixedSize;
+    }
+    
 }

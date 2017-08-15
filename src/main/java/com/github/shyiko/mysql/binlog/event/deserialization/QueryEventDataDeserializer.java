@@ -29,6 +29,7 @@ public class QueryEventDataDeserializer implements EventDataDeserializer<QueryEv
     public QueryEventData deserialize(ByteArrayInputStream inputStream) throws IOException {
         QueryEventData eventData = new QueryEventData();
         eventData.setThreadId(inputStream.readLong(4));
+        
         eventData.setExecutionTime(inputStream.readLong(4));
         inputStream.skip(1); // length of the name of the database
         eventData.setErrorCode(inputStream.readInteger(2));

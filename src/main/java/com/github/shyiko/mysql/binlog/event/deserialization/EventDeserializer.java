@@ -21,6 +21,7 @@ import com.github.shyiko.mysql.binlog.event.EventHeader;
 import com.github.shyiko.mysql.binlog.event.EventType;
 import com.github.shyiko.mysql.binlog.event.TableMapEventData;
 import com.github.shyiko.mysql.binlog.io.ByteArrayInputStream;
+import com.github.shyiko.mysql.binlog.event.FormatDescriptionEventData;
 
 import java.io.IOException;
 import java.util.EnumSet;
@@ -36,6 +37,7 @@ public class EventDeserializer {
     private final EventHeaderDeserializer eventHeaderDeserializer;
     private final EventDataDeserializer defaultEventDataDeserializer;
     private final Map<EventType, EventDataDeserializer> eventDataDeserializers;
+    private byte[] postHeaderLengths = new byte[256];
 
     private EnumSet<CompatibilityMode> compatibilitySet = EnumSet.noneOf(CompatibilityMode.class);
     private int checksumLength;
@@ -200,8 +202,22 @@ public class EventDeserializer {
                 tableMapEvent = (TableMapEventData) eventData;
             }
             tableMapEventByTableId.put(tableMapEvent.getTableId(), tableMapEvent);
+        } else if (eventHeader.getEventType() == EventType.FORMAT_DESCRIPTION) {
+            FormatDescriptionEventData fd = (FormatDescriptionEventData) eventData;
+            postHeaderLengths = fd.getPostHeaderLengths();
         }
         return new Event(eventHeader, eventData);
+    }
+
+    private int getFixedSize(EventType eventType) {
+        if(eventType == null)
+            return 0;
+        if(postHeaderLengths == null)
+            return 0;
+        int num = eventType.getEventNumber();
+        if(num >= postHeaderLengths.length)
+            return 0;
+        return postHeaderLengths[num] & 0xff;
     }
 
     private EventData deserializeEventData(ByteArrayInputStream inputStream, EventHeader eventHeader,
@@ -212,11 +228,13 @@ public class EventDeserializer {
         EventData eventData;
         try {
             inputStream.enterBlock(eventBodyLength);
+            inputStream.setFixedSize(getFixedSize(eventHeader.getEventType()));
             try {
                 eventData = eventDataDeserializer.deserialize(inputStream);
             } finally {
                 inputStream.skipToTheEndOfTheBlock();
                 inputStream.skip(checksumLength);
+                inputStream.setFixedSize(0);
             }
         } catch (IOException e) {
             throw new EventDataDeserializationException(eventHeader, e);
