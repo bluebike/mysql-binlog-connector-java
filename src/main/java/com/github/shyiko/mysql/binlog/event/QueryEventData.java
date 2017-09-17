@@ -20,6 +20,72 @@ package com.github.shyiko.mysql.binlog.event;
  */
 public class QueryEventData implements EventData {
 
+    public enum QueryStatusType {
+       FLAGS2,
+       SQL_MODE,
+       CATALOG_CODE,
+       AUTO_INCREMENT,
+       CHARSET_CODE;
+    }
+
+
+    public static class QueryStatus {
+        public QueryStatusType type;
+    }
+
+    public static class QueryStatusFlags2 extends QueryStatus {
+        public int flags2;
+        public QueryStatusFlags2(int flags2) {
+            this.flags2 = flags2;
+        }
+        public String toString() {
+            return "Q_FLAGS2(" + flags2 + ")";
+        }
+    }
+
+    public static class QueryStatusSqlMode extends QueryStatus {
+        public long sql_mode;
+        public QueryStatusSqlMode(long sql_mode) {
+            this.sql_mode = sql_mode;
+        }
+        public String toString() {
+            return "Q_SQL_MODE(" + sql_mode + ")";
+        }
+    }
+
+    public static class QueryStatusCatalog extends QueryStatus {
+        String catalog;
+        public QueryStatusCatalog(String catalog) {
+            this.catalog = catalog;
+        }
+        public String toString() {
+            return "Q_CATALOG(" + catalog + ")";
+        }
+    }
+
+    public static class QueryStatusAutoIncrement extends QueryStatus {
+        public int auto_increment_increment;
+        public int auto_increment_offset;
+        public QueryStatusAutoIncrement(int increment, int offset) {
+            this.auto_increment_increment = increment;
+            this.auto_increment_offset = offset;
+        }
+        public String toString() {
+            return "Q_AUTO_INCREMENT(" + auto_increment_increment + "," + auto_increment_offset + ")";
+        }
+    }
+
+    public static class QueryStatusCharset extends QueryStatus {
+        public String charset;        
+        public QueryStatusCharset(String charset) {
+            this.charset = charset;
+        }
+        public String toString() {
+            return "Q_CHARSET(" + charset + ")";
+        }
+    }
+
+    
     private long threadId;
     private long executionTime;
     private int errorCode;
