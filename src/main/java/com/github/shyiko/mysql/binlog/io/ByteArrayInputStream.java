@@ -19,6 +19,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.BitSet;
+import java.nio.charset.Charset;
 
 /**
  * @author <a href="mailto:stanley.shyiko@gmail.com">Stanley Shyiko</a>
@@ -29,6 +30,12 @@ public class ByteArrayInputStream extends InputStream {
     private Integer peek;
     private int blockLength = -1;
     private int fixedSize = 0;
+    private static Charset defCharset = Charset.forName("UTF-8");
+
+    public ByteArrayInputStream(InputStream inputStream, Charset charset) {
+        this.inputStream = inputStream;
+        this.defCharset = charset;
+    }
 
     public ByteArrayInputStream(InputStream inputStream) {
         this.inputStream = inputStream;
@@ -38,10 +45,23 @@ public class ByteArrayInputStream extends InputStream {
         this(new java.io.ByteArrayInputStream(bytes));
     }
 
+    public ByteArrayInputStream(byte[] bytes, Charset charset) {
+        this(new java.io.ByteArrayInputStream(bytes), charset);
+    }
 
     public ByteArrayInputStream subStream(int length) throws IOException {
         byte[] bytes = read(length);
-        return new ByteArrayInputStream(bytes);
+        return new ByteArrayInputStream(bytes, this.defCharset);
+    }
+
+
+    public Charset getCharset() {
+        return defCharset;
+    }
+
+    public <T extends ByteArrayInputStream> T setCharset(Charset charset) {
+        this.defCharset = charset;
+        return (T) this;
     }
 
     /**
@@ -91,26 +111,87 @@ public class ByteArrayInputStream extends InputStream {
      * Read fixed length string.
      */
     public String readString(int length) throws IOException {
-        return new String(read(length));
+        return new String(read(length), defCharset);
+    }
+
+    /**
+     * Read fixed length string (given charset)
+     */
+    public String readString(int length, Charset charset) throws IOException {
+        return new String(read(length), charset);
+    }
+
+    /**
+     * Read fixed length string with possible zero padding (with default charset)
+     */
+    public String readStringPadded(int length) throws IOException {
+        return readStringPadded(length,  defCharset);
+    }
+
+    /**
+     * Read fixed length string with possible zero padding (with charset)
+     */
+    public String readStringPadded(int length, Charset charset) throws IOException {
+        byte arr[] = read(length);
+        int off = 0;
+        for(;off < arr.length; off++) {
+            if(arr[off] == 0) {
+                break;
+            }
+        }
+        return new String(arr,0,off, charset);
     }
 
     /**
      * Read variable-length string. Preceding packed integer indicates the length of the string.
      */
     public String readLengthEncodedString() throws IOException {
-        return readString(readPackedInteger());
+        return readString(readPackedInteger(), defCharset);
+    }
+
+    /**
+     * Read variable-length string. Preceding packed integer indicates the length of the string.
+     */
+    public String readLengthEncodedString(Charset charset) throws IOException {
+        return readString(readPackedInteger(), charset);
     }
 
     /**
      * Read variable-length string. End is indicated by 0x00 byte.
      */
     public String readZeroTerminatedString() throws IOException {
+        return readZeroTerminatedString(defCharset);
+    }
+
+    /**
+     * Read variable-length string. End is indicated by 0x00 byte (with charset)
+     */
+    public String readZeroTerminatedString(Charset charset) throws IOException {
         ByteArrayOutputStream s = new ByteArrayOutputStream();
         for (int b; (b = this.read()) != 0; ) {
             s.writeInteger(b, 1);
         }
-        return new String(s.toByteArray());
+        return new String(s.toByteArray(), charset);
     }
+
+    /**
+     * Read variable-length string. End is indicated by 0x00 byte (or to length)
+     */
+    public String readZeroTerminatedEOFString(Charset charset) throws IOException {
+        ByteArrayOutputStream s = new ByteArrayOutputStream();
+        for(;;) {
+            int b = this.read();
+            if(b <= 0) {
+                break;
+            }
+            s.writeInteger(b, 1);
+        }
+        return new String(s.toByteArray(), charset);
+    }
+    public String readZeroTerminatedEOFString() throws IOException {
+        return readZeroTerminatedEOFString(defCharset);
+    }
+
 
     public byte[] read(int length) throws IOException {
         byte[] bytes = new byte[length];
